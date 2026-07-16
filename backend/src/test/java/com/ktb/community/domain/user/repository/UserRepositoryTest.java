@@ -1,34 +1,37 @@
 package com.ktb.community.domain.user.repository;
 
 import com.ktb.community.domain.user.entity.User;
+import com.ktb.community.global.config.JpaAuditingConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.context.annotation.Import;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
+@Import(JpaAuditingConfig.class)
 public class UserRepositoryTest {
 
     @Autowired
     private UserRepository userRepository;
 
     @Test
-    @DisplayName("회원 가입 성공 시, 해당 유저 정보가 DB에 저장된다.")
+    @DisplayName("회원 가입 성공 시, 해당 유저 정보가 DB에 저장되고, 이때 생성 시간이 자동으로 저장된다.")
     void signupUser_restoreUserInfo() {
         // given
         User user = new User(
-            "test@example.com",
-            "encoded-password",
-            "neo",
-            "profile-image"
+                "test@example.com",
+                "encoded-password",
+                "neo",
+                "profile-image"
         );
 
         // when
-        User savedUser = userRepository.save(user);
+        User savedUser = userRepository.saveAndFlush(user);
 
         // then
         assertThat(savedUser.getUserId()).isNotNull();
@@ -40,6 +43,9 @@ public class UserRepositoryTest {
         assertThat(foundUser.get().getPassword()).isEqualTo("encoded-password");
         assertThat(foundUser.get().getNickname()).isEqualTo("neo");
         assertThat(foundUser.get().getProfileImage()).isEqualTo("profile-image");
+
+        assertThat(savedUser.getCreatedAt()).isNotNull();
+        assertThat(savedUser.getUpdatedAt()).isNotNull();
     }
 
     @Test

@@ -28,6 +28,7 @@ public class PostDetailResponseDto {
         private String postImage;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+        private LocalDateTime editedAt;
 
         public PostInfo(Post post) {
             this.postId = post.getPostId();
@@ -36,6 +37,7 @@ public class PostDetailResponseDto {
             this.postImage = post.isBlinded() ? null : post.getPostImage();
             this.createdAt = post.getCreatedAt();
             this.updatedAt = post.getUpdatedAt();
+            this.editedAt = post.getEditedAt();
         }
     }
 

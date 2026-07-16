@@ -185,12 +185,8 @@ public class CommentService {
     }
 
     private User getActiveUser(String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailAndDeletedFalse(email)
                 .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED_USER));
-
-        if (user.isDeleted()) {
-            throw new ApiException(ErrorCode.UNAUTHORIZED_USER);
-        }
 
         return user;
     }

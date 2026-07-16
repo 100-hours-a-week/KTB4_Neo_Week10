@@ -53,6 +53,9 @@ public class Post extends BaseTimeEntity {
     @Column(name = "deletedAt")
     private LocalDateTime deletedAt;
 
+    @Column(name = "editedAt")
+    private LocalDateTime editedAt;
+
     public Post(User user, String title, String postBody, String postImage) {
         this.user = user;
         this.title = title;
@@ -66,6 +69,7 @@ public class Post extends BaseTimeEntity {
         this.postBody = postBody;
         this.postImage = postImage;
         this.edited = true;
+        this.editedAt = LocalDateTime.now();
     }
 
     public void delete() {
