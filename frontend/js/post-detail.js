@@ -407,7 +407,9 @@ async function loadPostDetail() {
   postTitle.textContent = post.title;
   postBody.textContent = post.postBody;
   postCreatedAt.textContent = formatRelativeTime(post.createdAt);
-  postUpdatedAt.textContent = formatRelativeTime(post.updatedAt || post.createdAt);
+  postUpdatedAt.textContent = post.editedAt
+    ? formatRelativeTime(post.editedAt)
+    : "수정되지 않음";
 
   if (postImageUrl && postImageUrl !== "null") {
     postImage.hidden = false;
