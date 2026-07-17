@@ -1,0 +1,66 @@
+import { useEffect, useRef } from "react";
+
+export default function ConfirmModal({
+  isOpen,
+  title,
+  message,
+  onCancel,
+  onConfirm,
+}) {
+  const cancelRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const previousFocus = document.activeElement;
+    document.body.classList.add("modal-open");
+    cancelRef.current?.focus();
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onCancel();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.classList.remove("modal-open");
+      document.removeEventListener("keydown", closeOnEscape);
+      previousFocus?.focus();
+    };
+  }, [isOpen, onCancel]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-modal-title"
+      aria-describedby="confirm-modal-message"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onCancel();
+      }}
+    >
+      <div className="confirm-modal">
+        <h2 id="confirm-modal-title">{title}</h2>
+        <p id="confirm-modal-message">{message}</p>
+        <div className="confirm-modal-actions">
+          <button
+            ref={cancelRef}
+            className="modal-button cancel-button"
+            type="button"
+            onClick={onCancel}
+          >
+            취소
+          </button>
+          <button
+            className="modal-button confirm-button"
+            type="button"
+            onClick={onConfirm}
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
