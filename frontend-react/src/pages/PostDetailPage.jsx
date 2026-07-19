@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   createComment,
@@ -39,21 +45,64 @@ export default function PostDetailPage() {
   const [commentValue, setCommentValue] = useState("");
   const [commentMode, setCommentMode] = useState(createMode);
   const [isCommentSubmitting, setIsCommentSubmitting] = useState(false);
+  const [isLikeSubmitting, setIsLikeSubmitting] = useState(false);
+  const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const mountedRef = useRef(false);
+  const currentPostIdRef = useRef(postId);
+  const likePendingRef = useRef(false);
+  const likeRequestIdRef = useRef(0);
+  const commentPendingRef = useRef(false);
+  const commentRequestIdRef = useRef(0);
+  const deletePendingRef = useRef(false);
+  const deleteRequestIdRef = useRef(0);
+  currentPostIdRef.current = postId;
 
   const loadComments = useCallback(async () => {
+    const requestedPostId = postId;
     const data = await getComments(postId);
-    setComments(Array.isArray(data) ? data : []);
+    if (
+      mountedRef.current &&
+      currentPostIdRef.current === requestedPostId
+    ) {
+      setComments(Array.isArray(data) ? data : []);
+    }
   }, [postId]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      likeRequestIdRef.current += 1;
+      commentRequestIdRef.current += 1;
+      deleteRequestIdRef.current += 1;
+    };
+  }, []);
 
   useEffect(() => {
     if (!/^\d+$/.test(postId)) {
       navigate("/posts", { replace: true });
-      return;
+      return undefined;
     }
 
     let cancelled = false;
+    likeRequestIdRef.current += 1;
+    commentRequestIdRef.current += 1;
+    deleteRequestIdRef.current += 1;
+    likePendingRef.current = false;
+    commentPendingRef.current = false;
+    deletePendingRef.current = false;
+    setIsLikeSubmitting(false);
+    setIsCommentSubmitting(false);
+    setIsDeleteSubmitting(false);
+    setDetail(null);
+    setComments([]);
+    setError("");
+    setCommentValue("");
+    setCommentMode(createMode);
+    setConfirm(null);
+    setIsReportOpen(false);
     Promise.all([getPost(postId), getComments(postId)])
       .then(([postData, commentData]) => {
         if (cancelled) return;
@@ -85,45 +134,148 @@ export default function PostDetailPage() {
     setCommentMode(createMode);
   }
 
+  async function handleLike() {
+    if (likePendingRef.current || !detail) return;
+
+    const requestId = likeRequestIdRef.current + 1;
+    const requestedPostId = postId;
+    likeRequestIdRef.current = requestId;
+    likePendingRef.current = true;
+    setIsLikeSubmitting(true);
+    try {
+      const result = await togglePostLike(
+        requestedPostId,
+        detail.meta.liked,
+      );
+      if (
+        !mountedRef.current ||
+        currentPostIdRef.current !== requestedPostId ||
+        likeRequestIdRef.current !== requestId
+      ) {
+        return;
+      }
+      setDetail((current) => ({
+        ...current,
+        meta: {
+          ...current.meta,
+          liked: result.liked,
+          likes: result.likes,
+        },
+      }));
+    } catch (requestError) {
+      if (
+        mountedRef.current &&
+        currentPostIdRef.current === requestedPostId &&
+        likeRequestIdRef.current === requestId
+      ) {
+        window.alert(requestError.message);
+      }
+    } finally {
+      if (likeRequestIdRef.current === requestId) {
+        likePendingRef.current = false;
+        if (mountedRef.current) setIsLikeSubmitting(false);
+      }
+    }
+  }
+
   async function submitComment(event) {
     event.preventDefault();
     const body = commentValue.trim();
-    if (!body || isCommentSubmitting) return;
+    if (!body || commentPendingRef.current) return;
 
+    const requestId = commentRequestIdRef.current + 1;
+    const requestedPostId = postId;
+    const requestedMode = commentMode;
+    commentRequestIdRef.current = requestId;
+    commentPendingRef.current = true;
     setIsCommentSubmitting(true);
     try {
-      if (commentMode.type === "edit") {
-        await updateComment(commentMode.commentId, body);
-      } else if (commentMode.type === "reply") {
-        await createReply(commentMode.parentCommentId, body);
+      if (requestedMode.type === "edit") {
+        await updateComment(requestedMode.commentId, body);
+      } else if (requestedMode.type === "reply") {
+        await createReply(requestedMode.parentCommentId, body);
       } else {
-        await createComment(postId, body);
+        await createComment(requestedPostId, body);
+      }
+      if (
+        !mountedRef.current ||
+        currentPostIdRef.current !== requestedPostId ||
+        commentRequestIdRef.current !== requestId
+      ) {
+        return;
       }
       await loadComments();
-      resetCommentForm();
+      if (
+        mountedRef.current &&
+        currentPostIdRef.current === requestedPostId &&
+        commentRequestIdRef.current === requestId
+      ) {
+        resetCommentForm();
+      }
     } catch (requestError) {
-      window.alert(requestError.message);
+      if (
+        mountedRef.current &&
+        currentPostIdRef.current === requestedPostId &&
+        commentRequestIdRef.current === requestId
+      ) {
+        window.alert(requestError.message);
+      }
     } finally {
-      setIsCommentSubmitting(false);
+      if (commentRequestIdRef.current === requestId) {
+        commentPendingRef.current = false;
+        if (mountedRef.current) setIsCommentSubmitting(false);
+      }
     }
   }
 
   async function confirmDelete() {
+    if (deletePendingRef.current || !confirm) return;
+
     const target = confirm;
-    setConfirm(null);
+    const requestId = deleteRequestIdRef.current + 1;
+    const requestedPostId = postId;
+    deleteRequestIdRef.current = requestId;
+    deletePendingRef.current = true;
+    setIsDeleteSubmitting(true);
     try {
       if (target.type === "post") {
-        await deletePost(postId);
+        await deletePost(requestedPostId);
+        if (
+          !mountedRef.current ||
+          currentPostIdRef.current !== requestedPostId ||
+          deleteRequestIdRef.current !== requestId
+        ) {
+          return;
+        }
         navigate("/posts", { replace: true });
       } else {
         await deleteComment(target.item.commentId);
         await loadComments();
+        if (
+          !mountedRef.current ||
+          currentPostIdRef.current !== requestedPostId ||
+          deleteRequestIdRef.current !== requestId
+        ) {
+          return;
+        }
+        setConfirm(null);
         if (commentMode.commentId === target.item.commentId) {
           resetCommentForm();
         }
       }
     } catch (requestError) {
-      window.alert(requestError.message);
+      if (
+        mountedRef.current &&
+        currentPostIdRef.current === requestedPostId &&
+        deleteRequestIdRef.current === requestId
+      ) {
+        window.alert(requestError.message);
+      }
+    } finally {
+      if (deleteRequestIdRef.current === requestId) {
+        deletePendingRef.current = false;
+        if (mountedRef.current) setIsDeleteSubmitting(false);
+      }
     }
   }
 
@@ -237,21 +389,9 @@ export default function PostDetailPage() {
                 meta.liked ? "is-active" : ""
               }`}
               type="button"
-              onClick={async () => {
-                try {
-                  const result = await togglePostLike(postId, meta.liked);
-                  setDetail((current) => ({
-                    ...current,
-                    meta: {
-                      ...current.meta,
-                      liked: result.liked,
-                      likes: result.likes,
-                    },
-                  }));
-                } catch (requestError) {
-                  window.alert(requestError.message);
-                }
-              }}
+              disabled={isLikeSubmitting}
+              aria-busy={isLikeSubmitting}
+              onClick={handleLike}
             >
               <span className="detail-stat-icon heart-icon">♥</span>
               <strong>{formatCount(meta.likes)}</strong>
@@ -279,6 +419,9 @@ export default function PostDetailPage() {
             onCancelMode={resetCommentForm}
           />
           <div className="comment-list">
+            {!comments.length && (
+              <p className="helper-text">* 등록된 댓글이 없습니다.</p>
+            )}
             {comments.map((comment) => (
               <CommentItem
                 key={comment.commentId}
@@ -322,6 +465,8 @@ export default function PostDetailPage() {
         message="삭제한 내용은 복구할 수 없습니다."
         onCancel={() => setConfirm(null)}
         onConfirm={confirmDelete}
+        isConfirming={isDeleteSubmitting}
+        confirmLabel="삭제"
       />
       <ReportModal
         isOpen={isReportOpen}

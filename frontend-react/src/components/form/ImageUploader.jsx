@@ -32,7 +32,11 @@ export default function ImageUploader({
           className="visually-hidden"
           type="file"
           accept="image/*"
-          onChange={(event) => onSelect(event.target.files[0])}
+          onChange={(event) => {
+            const file = event.target.files[0];
+            event.target.value = "";
+            onSelect(file);
+          }}
         />
         {(isUploading || error) && (
           <p className="helper-text" aria-live="polite">
@@ -55,7 +59,11 @@ export default function ImageUploader({
           className="visually-hidden"
           type="file"
           accept="image/*"
-          onChange={(event) => onSelect(event.target.files[0])}
+          onChange={(event) => {
+            const file = event.target.files[0];
+            event.target.value = "";
+            onSelect(file);
+          }}
         />
       </div>
       {imageSource && (

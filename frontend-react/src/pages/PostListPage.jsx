@@ -9,13 +9,11 @@ const PAGE_SIZE = 10;
 
 export default function PostListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const requestedPage = Number(searchParams.get("page") || 0);
-  const page = Number.isInteger(requestedPage) && requestedPage >= 0
-    ? requestedPage
-    : 0;
+  const pageParam = searchParams.get("page");
+  const page = pageParam === null ? 0 : pageParam;
   const [posts, setPosts] = useState([]);
   const [pageInfo, setPageInfo] = useState({
-    number: page,
+    number: 0,
     totalPages: 1,
     first: true,
     last: true,
@@ -44,7 +42,11 @@ export default function PostListPage() {
               last: response?.last ?? true,
             };
 
-        if (!content.length && page > 0 && info.totalPages > 0) {
+        if (
+          !content.length &&
+          info.number > 0 &&
+          info.totalPages > 0
+        ) {
           setSearchParams({ page: String(info.totalPages - 1) });
           return;
         }
@@ -103,7 +105,9 @@ export default function PostListPage() {
               <p className="helper-text">* 등록된 게시글이 없습니다.</p>
             ))}
         </section>
-        <Pagination pageInfo={pageInfo} onChange={changePage} />
+        {!status.loading && !status.error && (
+          <Pagination pageInfo={pageInfo} onChange={changePage} />
+        )}
       </main>
     </>
   );

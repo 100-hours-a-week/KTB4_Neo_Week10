@@ -1,9 +1,15 @@
 import { apiRequest } from "./client";
 
-export const getPosts = (page = 0, size = 10) =>
-  apiRequest(`/posts?page=${page}&size=${size}`, {
+export const getPosts = (page = 0, size = 10) => {
+  const searchParams = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+
+  return apiRequest(`/posts?${searchParams}`, {
     errorMessage: "게시글을 불러오는 중 오류가 발생했습니다.",
   });
+};
 
 export const getPost = (postId) =>
   apiRequest(`/posts/${postId}`, {

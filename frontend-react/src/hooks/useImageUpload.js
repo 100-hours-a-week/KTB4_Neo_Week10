@@ -8,6 +8,8 @@ export function useImageUpload(initialImage = "") {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
   const objectUrlRef = useRef("");
+  const uploadIdRef = useRef(0);
+  const mountedRef = useRef(false);
 
   function revokePreview() {
     if (!objectUrlRef.current) return;
@@ -19,6 +21,8 @@ export function useImageUpload(initialImage = "") {
     setError("");
     if (!file) return;
 
+    const uploadId = uploadIdRef.current + 1;
+    uploadIdRef.current = uploadId;
     revokePreview();
     objectUrlRef.current = URL.createObjectURL(file);
     setPreviewUrl(objectUrlRef.current);
@@ -27,19 +31,38 @@ export function useImageUpload(initialImage = "") {
 
     try {
       const uploadedUrl = await uploadImageFile(file);
+      if (
+        !mountedRef.current ||
+        uploadId !== uploadIdRef.current
+      ) {
+        return uploadedUrl;
+      }
       setImageUrl(uploadedUrl);
       return uploadedUrl;
     } catch (uploadError) {
+      if (
+        !mountedRef.current ||
+        uploadId !== uploadIdRef.current
+      ) {
+        throw uploadError;
+      }
+      revokePreview();
       setError(uploadError.message);
       setPreviewUrl("");
       setFileName("");
       throw uploadError;
     } finally {
-      setIsUploading(false);
+      if (
+        mountedRef.current &&
+        uploadId === uploadIdRef.current
+      ) {
+        setIsUploading(false);
+      }
     }
   }
 
   function reset(nextImage = "") {
+    uploadIdRef.current += 1;
     revokePreview();
     setImageUrl(nextImage);
     setPreviewUrl("");
@@ -48,7 +71,14 @@ export function useImageUpload(initialImage = "") {
     setIsUploading(false);
   }
 
-  useEffect(() => () => revokePreview(), []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      uploadIdRef.current += 1;
+      revokePreview();
+    };
+  }, []);
 
   return {
     imageUrl,

@@ -32,8 +32,12 @@ public class PostListResponseDto {
                 ? "숨김 처리된 게시글입니다."
                 : post.getTitle();
         this.userId = post.getUser().getUserId();
-        this.nickname = post.getUser().getNickname();
-        this.profileImage = post.getUser().getProfileImage();
+        this.nickname = post.getUser().isDeleted()
+                ? "알 수 없음"
+                : post.getUser().getNickname();
+        this.profileImage = post.getUser().isDeleted()
+                ? null
+                : post.getUser().getProfileImage();
         this.postImage = post.isBlinded() ? null : post.getPostImage();
         this.createdAt = post.getCreatedAt();
         this.likes = post.getLikes();

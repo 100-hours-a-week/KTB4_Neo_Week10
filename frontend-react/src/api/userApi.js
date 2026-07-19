@@ -26,3 +26,4 @@ export const updatePassword = (userId, data) =>
     body: JSON.stringify(data),
     errorMessage: "비밀번호 수정에 실패했습니다.",
   });
+  

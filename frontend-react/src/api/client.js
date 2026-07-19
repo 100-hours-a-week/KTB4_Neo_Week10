@@ -87,7 +87,7 @@ async function authFetch(url, options, retry = true) {
 
   try {
     const newAccessToken = await refreshAccessToken();
-    return fetch(url, {
+    const retryResponse = await fetch(url, {
       ...options,
       credentials: "include",
       headers: {
@@ -95,6 +95,12 @@ async function authFetch(url, options, retry = true) {
         Authorization: `Bearer ${newAccessToken}`,
       },
     });
+    if (retryResponse.status === 401) {
+      const error = new Error("unauthorized_user");
+      clearAuth();
+      unauthorizedHandler?.(error);
+    }
+    return retryResponse;
   } catch (error) {
     clearAuth();
     unauthorizedHandler?.(error);

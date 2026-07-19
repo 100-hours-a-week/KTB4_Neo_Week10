@@ -1,6 +1,12 @@
-export default function FormField({ label, htmlFor, error, children }) {
+export default function FormField({
+  label,
+  htmlFor,
+  error,
+  children,
+  className = "form-field",
+}) {
   return (
-    <div className="form-field">
+    <div className={className}>
       <label htmlFor={htmlFor}>{label}</label>
       {children}
       {error !== undefined && (

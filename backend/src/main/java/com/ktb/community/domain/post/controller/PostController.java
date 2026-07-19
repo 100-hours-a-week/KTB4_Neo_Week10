@@ -10,22 +10,19 @@ import com.ktb.community.domain.post.dto.PostUpdateResponseDto;
 import com.ktb.community.domain.post.dto.ReportRequestDto;
 import com.ktb.community.domain.post.dto.ReportResponseDto;
 import com.ktb.community.domain.post.service.PostService;
+import com.ktb.community.global.exception.ApiException;
+import com.ktb.community.global.exception.ErrorCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/posts")
@@ -49,14 +46,37 @@ public class PostController {
     @GetMapping
     public ResponseEntity<ApiResponse<Page<PostListResponseDto>>> getPostList(
             @AuthenticationPrincipal UserDetails userDetails,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
-            Pageable pageable
+            @RequestParam(required = false) String page,
+            @RequestParam(required = false) String size
     ) {
+        int pageNumber = parseRequestParameter(page, 0, 0);
+        int pageSize = parseRequestParameter(size, 20, 1);
+        Pageable pageable = PageRequest.of(
+                pageNumber,
+                pageSize,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
         Page<PostListResponseDto> response = postService.getPostList(userDetails.getUsername(), pageable);
 
         return ResponseEntity.ok(
                 new ApiResponse<>("get_posts_success", response)
         );
+    }
+
+    private int parseRequestParameter(String value, int defaultValue, int minimumValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+
+        try {
+            int parsedValue = Integer.parseInt(value);
+            if (parsedValue < minimumValue) {
+                throw new ApiException(ErrorCode.INVALID_INPUT);
+            }
+            return parsedValue;
+        } catch (NumberFormatException e) {
+            throw new ApiException(ErrorCode.INVALID_INPUT);
+        }
     }
 
     @GetMapping("/{postId}")

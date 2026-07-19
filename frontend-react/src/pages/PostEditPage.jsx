@@ -1,31 +1,34 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { uploadImageFile } from "../api/client";
 import { getPost, updatePost } from "../api/postApi";
 import Header from "../components/common/Header";
-import PostForm from "../components/posts/PostForm";
+import PostEditForm from "../components/posts/PostEditForm";
 
 export default function PostEditPage() {
   const { postId } = useParams();
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    setPost(null);
+    setError("");
     getPost(postId)
-      .then(({ post: data }) => setPost(data))
-      .catch((requestError) => setError(requestError.message));
+      .then(({ post: data }) => {
+        if (!cancelled) setPost(data);
+      })
+      .catch((requestError) => {
+        if (!cancelled) setError(requestError.message);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [postId]);
 
   async function submit(data) {
-    setIsSubmitting(true);
-    try {
-      await updatePost(postId, data);
-      navigate(`/posts/${postId}`, { replace: true });
-    } finally {
-      setIsSubmitting(false);
-    }
+    await updatePost(postId, data);
+    navigate(`/posts/${postId}`, { replace: true });
   }
 
   return (
@@ -37,20 +40,9 @@ export default function PostEditPage() {
           <p className="helper-text">* 게시글을 불러오는 중입니다.</p>
         )}
         {post && (
-          <PostForm
+          <PostEditForm
             key={post.postId}
-            initialValues={{
-              title: post.title || "",
-              postBody: post.postBody || "",
-              postImage: post.postImage || "",
-              previewUrl: "",
-              fileName: "",
-              isUploading: false,
-              imageError: "",
-              upload: uploadImageFile,
-            }}
-            submitLabel="수정하기"
-            isLoading={isSubmitting}
+            post={post}
             onSubmit={submit}
           />
         )}

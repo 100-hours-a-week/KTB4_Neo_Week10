@@ -101,9 +101,15 @@ public class CommentService {
                                         reply -> new CommentListResponseDto.ReplyResponseDto(
                                                 reply.getCommentId(),
                                                 reply.getUser().getUserId(),
-                                                reply.getUser().getNickname(),
-                                                reply.getUser().getProfileImage(),
-                                                reply.getCommentBody(),
+                                                reply.isDeleted() || reply.getUser().isDeleted()
+                                                        ? "알 수 없음"
+                                                        : reply.getUser().getNickname(),
+                                                reply.isDeleted() || reply.getUser().isDeleted()
+                                                        ? null
+                                                        : reply.getUser().getProfileImage(),
+                                                reply.isDeleted()
+                                                        ? "삭제된 댓글입니다."
+                                                        : reply.getCommentBody(),
                                                 reply.isDeleted(),
                                                 reply.getCreatedAt()
                                         ),

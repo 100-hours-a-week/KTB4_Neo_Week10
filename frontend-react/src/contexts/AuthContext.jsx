@@ -73,12 +73,23 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!auth.accessToken || !auth.userId) {
       setCurrentUser(null);
-      return;
+      return undefined;
     }
-    refreshCurrentUser().catch((error) => {
-      console.warn("current user request failed:", error.message);
-    });
-  }, [auth.accessToken, auth.userId, refreshCurrentUser]);
+
+    let cancelled = false;
+    getUser(auth.userId)
+      .then((user) => {
+        if (!cancelled) setCurrentUser(user);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.warn("current user request failed:", error.message);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [auth.accessToken, auth.userId]);
 
   const value = useMemo(
     () => ({

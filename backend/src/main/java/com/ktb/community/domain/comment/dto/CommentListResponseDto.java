@@ -23,8 +23,12 @@ public class CommentListResponseDto {
 
         this.commentId = comment.getCommentId();
         this.userId = comment.getUser().getUserId();
-        this.nickname = comment.isDeleted() ? "알 수 없음" : comment.getUser().getNickname();
-        this.profileImage = comment.isDeleted() ? null : comment.getUser().getProfileImage();
+        this.nickname = comment.isDeleted() || comment.getUser().isDeleted()
+                ? "알 수 없음"
+                : comment.getUser().getNickname();
+        this.profileImage = comment.isDeleted() || comment.getUser().isDeleted()
+                ? null
+                : comment.getUser().getProfileImage();
         this.commentBody = comment.isDeleted() ? "삭제된 댓글입니다." : comment.getCommentBody();
         this.isDeleted = comment.isDeleted();
         this.createdAt = comment.getCreatedAt();

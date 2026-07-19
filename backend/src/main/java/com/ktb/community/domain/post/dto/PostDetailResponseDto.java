@@ -49,8 +49,12 @@ public class PostDetailResponseDto {
 
         public AuthorInfo(Post post) {
             this.userId = post.getUser().getUserId();
-            this.nickname = post.getUser().getNickname();
-            this.profileImage = post.getUser().getProfileImage();
+            this.nickname = post.getUser().isDeleted()
+                    ? "알 수 없음"
+                    : post.getUser().getNickname();
+            this.profileImage = post.getUser().isDeleted()
+                    ? null
+                    : post.getUser().getProfileImage();
         }
     }
 

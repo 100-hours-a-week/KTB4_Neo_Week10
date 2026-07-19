@@ -6,8 +6,14 @@ export default function ConfirmModal({
   message,
   onCancel,
   onConfirm,
+  isConfirming = false,
+  confirmLabel = "확인",
 }) {
   const cancelRef = useRef(null);
+  const onCancelRef = useRef(onCancel);
+  const isConfirmingRef = useRef(isConfirming);
+  onCancelRef.current = onCancel;
+  isConfirmingRef.current = isConfirming;
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -16,7 +22,9 @@ export default function ConfirmModal({
     cancelRef.current?.focus();
 
     const closeOnEscape = (event) => {
-      if (event.key === "Escape") onCancel();
+      if (event.key === "Escape" && !isConfirmingRef.current) {
+        onCancelRef.current();
+      }
     };
     document.addEventListener("keydown", closeOnEscape);
 
@@ -25,7 +33,7 @@ export default function ConfirmModal({
       document.removeEventListener("keydown", closeOnEscape);
       previousFocus?.focus();
     };
-  }, [isOpen, onCancel]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -37,7 +45,12 @@ export default function ConfirmModal({
       aria-labelledby="confirm-modal-title"
       aria-describedby="confirm-modal-message"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onCancel();
+        if (
+          event.target === event.currentTarget &&
+          !isConfirmingRef.current
+        ) {
+          onCancelRef.current();
+        }
       }}
     >
       <div className="confirm-modal">
@@ -48,6 +61,7 @@ export default function ConfirmModal({
             ref={cancelRef}
             className="modal-button cancel-button"
             type="button"
+            disabled={isConfirming}
             onClick={onCancel}
           >
             취소
@@ -55,9 +69,10 @@ export default function ConfirmModal({
           <button
             className="modal-button confirm-button"
             type="button"
+            disabled={isConfirming}
             onClick={onConfirm}
           >
-            확인
+            {isConfirming ? "처리 중..." : confirmLabel}
           </button>
         </div>
       </div>
